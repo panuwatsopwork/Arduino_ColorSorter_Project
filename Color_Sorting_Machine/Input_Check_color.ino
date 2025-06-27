@@ -20,7 +20,7 @@ void setup() {
 }
 
 void loop() {
-  // อ่าน Serial Command
+  // รับคำสั่ง Serial
   if (Serial.available()) {
     char cmd = Serial.read();
 
@@ -45,7 +45,7 @@ void loop() {
     }
   }
 
-  // อ่านค่าสี RGB ตลอดเวลา
+  // อ่านค่าสี (RGB) แบบนิ่งเสถียรเหมือนโค้ดหลัก
   uint16_t r, g, b, c;
   tcs.getRawData(&r, &g, &b, &c);
 
