@@ -1,8 +1,3 @@
-/* Connect SCL    to analog 5
-   Connect SDA    to analog 4
-   Connect VDD    to 3.3V DC
-   Connect GROUND to common ground */
-
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
 #include <Servo.h>
@@ -15,6 +10,8 @@ bool systemEnabled = false;
 
 // องศาตามลำดับสี: แดง เขียว เหลือง ส้ม น้ำตาล
 int slotAngles[5] = {165, 125, 90, 45, 0};
+
+int noColorCount = 0;  // นับจำนวนรอบที่ไม่เจอสี
 
 void setup() {
   Serial.begin(9600);
@@ -56,13 +53,13 @@ void loop() {
   // STEP 2: เคลื่อนมาอ่านสี
   servo1.write(80);
   delay(1000);
-    servo1.write(86);
+  servo1.write(86);
   delay(800);
-
 
   // STEP 3: ตรวจจับชื่อสีซ้ำ 3 ครั้ง
   String lastColor = "";
   int sameCount = 0;
+  noColorCount = 0;  // Reset ก่อนเริ่มรอบนี้
 
   while (systemEnabled && sameCount < 3) {
     uint16_t r, g, b, c;
@@ -79,9 +76,28 @@ void loop() {
       sameCount++;
       Serial.print("✅ สี "); Serial.print(currentColor);
       Serial.print(" ตรงกัน ("); Serial.print(sameCount); Serial.println("/3)");
+      noColorCount = 0;
+    } else if (currentColor == "ไม่ทราบ") {
+      noColorCount++;
+      Serial.print("❌ ไม่เจอสี (รอบที่ "); Serial.print(noColorCount); Serial.println(")");
+
+      if (noColorCount >= 10) {
+        Serial.println("⚠ ไม่เจอสี 10 รอบ → Servo1 ไป 0°, รอ 2 วิ แล้วกลับ 86°");
+
+        servo1.write(0);
+        delay(2000);
+        servo1.write(86);
+
+        noColorCount = 0;
+        sameCount = 0;
+        lastColor = "";
+        break;  // ออกจาก loop ตรวจสี
+      }
+
     } else {
       sameCount = 1;
       lastColor = currentColor;
+      noColorCount = 0;
       Serial.println("🔁 เริ่มนับสีใหม่");
     }
 
@@ -115,25 +131,33 @@ void loop() {
 
 // ===== ฟังก์ชันช่วย =====
 String detectColor(uint16_t r, uint16_t g, uint16_t b) {
-  // เหลือง: R และ G สูงมาก, B ต่ำ
-  if (r > 7000 && g > 5000 && b < 3000) return "เหลือง";
+  // RED
+  if (r >= 1656 && r <= 2256 && g >= 375 && g <= 975 && b >= 206 && b <= 806) {
+    return "แดง";
+  }
 
-  // ส้ม: R สูง, G กลาง, B ต่ำ
-  if (r > 6500 && g > 2000 && g < 4000 && b < 2000) return "ส้ม";
+  // BROWN
+  if (r >= 897 && r <= 1497 && g >= 433 && g <= 1033 && b >= 179 && b <= 779) {
+    return "น้ำตาล";
+  }
 
-  // เขียว: G เด่นสุด, R และ B ต่ำกว่า
-  if (g > 2800 && g > r + 800 && g > b + 800) return "เขียว";
+  // ORANGE
+  if (r >= 2761 && r <= 3361 && g >= 1296 && g <= 1896 && b >= 498 && b <= 1098) {
+    return "ส้ม";
+  }
 
-  // แดง: R เด่น, G/B ต่ำ
-  if (r > 2000 && g < 1500 && b < 1500) return "แดง";
+  // GREEN
+  if (r >= 2287 && r <= 2887 && g >= 2420 && g <= 3020 && b >= 1112 && b <= 1712) {
+    return "เขียว";
+  }
 
-  // น้ำตาล: R/G/B ทั้งหมดต่ำ
-  if (r < 1500 && g < 1000 && b < 800) return "น้ำตาล";
+  // YELLOW
+  if (r >= 3059 && r <= 3659 && g >= 2349 && g <= 2949 && b >= 1006 && b <= 1606) {
+    return "เหลือง";
+  }
 
   return "ไม่ทราบ";
 }
-
-
 
 int getColorIndex(String color) {
   if (color == "แดง") return 0;
