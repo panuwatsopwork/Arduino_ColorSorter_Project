@@ -81,17 +81,21 @@ void loop() {
       noColorCount++;
       Serial.print("❌ ไม่เจอสี (รอบที่ "); Serial.print(noColorCount); Serial.println(")");
 
-      if (noColorCount >= 10) {
-        Serial.println("⚠ ไม่เจอสี 10 รอบ → Servo1 ไป 0°, รอ 2 วิ แล้วกลับ 86°");
+      if (noColorCount >= 5) {
+        Serial.println("⚠ ไม่เจอสี 5 รอบ → พา Skittle ไปทิ้ง (0°), รอ 2 วิ แล้วกลับรับใหม่ (174°)");
 
+        // พาไปทิ้ง
         servo1.write(0);
         delay(2000);
-        servo1.write(86);
+
+        // กลับไปเริ่มต้น
+        servo1.write(174);
+        delay(2000);
 
         noColorCount = 0;
         sameCount = 0;
         lastColor = "";
-        break;  // ออกจาก loop ตรวจสี
+        break;  // ออกจาก while loop → เริ่มใหม่
       }
 
     } else {
